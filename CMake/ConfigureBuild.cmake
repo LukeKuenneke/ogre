@@ -9,14 +9,12 @@
 
 #######################################################################
 # This file takes care of configuring Ogre to build with the settings
-# given in CMake. It creates the necessary config.h file and will 
+# given in CMake. It creates the necessary config.h file and will
 # also prepare package files for pkg-config and CMake.
 #######################################################################
 
-string(TOLOWER "${CMAKE_BUILD_TYPE}" OGRE_BUILD_TYPE)
-if (OGRE_BUILD_TYPE STREQUAL "debug")
-	add_definitions(-DDEBUG)
-endif()
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
 if (OGRE_BUILD_PLATFORM_APPLE_IOS)
   set(OGRE_SET_BUILD_PLATFORM_APPLE_IOS 1)
@@ -46,6 +44,10 @@ if (OGRE_CONFIG_THREADS)
 		# this behaviour is not available on all compilers, we need to find the libraries
 		# ourselves, anyway. Disable auto-linking to avoid mess-ups.
 		add_definitions(-DBOOST_ALL_NO_LIB)
+        if (MINGW AND Boost_USE_STATIC_LIBS)
+            # mingw needs this to link against static thread libraries
+            add_definitions(-DBOOST_THREAD_USE_LIB)
+        endif ()
 		set(OGRE_THREAD_LIBRARIES ${Boost_LIBRARIES})
 	endif ()
 
@@ -58,33 +60,56 @@ if (OGRE_CONFIG_THREADS)
 	if (OGRE_CONFIG_THREAD_PROVIDER STREQUAL "tbb")
 		set(OGRE_THREAD_PROVIDER 3)
 		include_directories(${TBB_INCLUDE_DIRS})
+		if (WIN32 AND MINGW)
+			add_definitions(-D_WIN32_WINNT=0x0501)    
+		endif ()
+
 		set(OGRE_THREAD_LIBRARIES ${TBB_LIBRARIES})
 	endif ()
 endif()
 
+set(OGRE_ASSERT_MODE 0 CACHE STRING 
+	"Enable Ogre asserts and exceptions. Possible values:
+	0 - Standard asserts in debug builds, nothing in release builds.
+	1 - Standard asserts in debug builds, exceptions in release builds.
+	2 - Exceptions in debug builds, exceptions in release builds."
+)
 
-# determine config values depending on build options 
+# determine config values depending on build options
 set(OGRE_SET_DOUBLE 0)
+set(OGRE_SET_NODE_INHERIT_TRANSFORM 0)
 set(OGRE_SET_ALLOCATOR ${OGRE_CONFIG_ALLOCATOR})
 set(OGRE_SET_CONTAINERS_USE_ALLOCATOR 0)
 set(OGRE_SET_STRING_USE_ALLOCATOR 0)
 set(OGRE_SET_MEMTRACK_DEBUG 0)
 set(OGRE_SET_MEMTRACK_RELEASE 0)
+set(OGRE_SET_ASSERT_MODE ${OGRE_ASSERT_MODE})
 set(OGRE_SET_THREADS ${OGRE_CONFIG_THREADS})
 set(OGRE_SET_THREAD_PROVIDER ${OGRE_THREAD_PROVIDER})
+set(OGRE_SET_DISABLE_MESHLOD 0)
 set(OGRE_SET_DISABLE_FREEIMAGE 0)
 set(OGRE_SET_DISABLE_DDS 0)
 set(OGRE_SET_DISABLE_PVRTC 0)
+set(OGRE_SET_DISABLE_ETC 0)
+set(OGRE_SET_DISABLE_STBI 0)
 set(OGRE_SET_DISABLE_ZIP 0)
 set(OGRE_SET_DISABLE_VIEWPORT_ORIENTATIONMODE 0)
 set(OGRE_SET_DISABLE_GLES2_CG_SUPPORT 0)
 set(OGRE_SET_DISABLE_GLES2_GLSL_OPTIMISER 0)
-set(OGRE_SET_NEW_COMPILERS 0)
+set(OGRE_SET_DISABLE_GLES2_VAO_SUPPORT 0)
+set(OGRE_SET_DISABLE_GL_STATE_CACHE_SUPPORT 0)
+set(OGRE_SET_DISABLE_GLES3_SUPPORT 0)
+set(OGRE_SET_DISABLE_TBB_SCHEDULER 0)
+set(RTSHADER_SYSTEM_BUILD_CORE_SHADERS 0)
+set(RTSHADER_SYSTEM_BUILD_EXT_SHADERS 0)
 set(OGRE_STATIC_LIB 0)
 set(OGRE_SET_USE_BOOST 0)
 set(OGRE_SET_PROFILING 0)
 if (OGRE_CONFIG_DOUBLE)
   set(OGRE_SET_DOUBLE 1)
+endif()
+if (OGRE_CONFIG_NODE_INHERIT_TRANSFORM)
+  set(OGRE_SET_NODE_INHERIT_TRANSFORM 1)
 endif()
 if (OGRE_CONFIG_CONTAINERS_USE_CUSTOM_ALLOCATOR)
   set(OGRE_SET_CONTAINERS_USE_ALLOCATOR 1)
@@ -98,6 +123,9 @@ endif()
 if (OGRE_CONFIG_MEMTRACK_RELEASE)
   set(OGRE_SET_MEMTRACK_RELEASE 1)
 endif()
+if (NOT OGRE_CONFIG_ENABLE_MESHLOD)
+  set(OGRE_SET_DISABLE_MESHLOD 1)
+endif()
 if (NOT OGRE_CONFIG_ENABLE_FREEIMAGE)
   set(OGRE_SET_DISABLE_FREEIMAGE 1)
 endif()
@@ -106,6 +134,12 @@ if (NOT OGRE_CONFIG_ENABLE_DDS)
 endif()
 if (NOT OGRE_CONFIG_ENABLE_PVRTC)
   set(OGRE_SET_DISABLE_PVRTC 1)
+endif()
+if (NOT OGRE_CONFIG_ENABLE_ETC)
+  set(OGRE_SET_DISABLE_ETC 1)
+endif()
+if (NOT OGRE_CONFIG_ENABLE_STBI)
+  set(OGRE_SET_DISABLE_STBI 1)
 endif()
 if (NOT OGRE_CONFIG_ENABLE_ZIP)
   set(OGRE_SET_DISABLE_ZIP 1)
@@ -119,8 +153,17 @@ endif()
 if (NOT OGRE_CONFIG_ENABLE_GLES2_GLSL_OPTIMISER)
   set(OGRE_SET_DISABLE_GLES2_GLSL_OPTIMISER 1)
 endif()
-if(OGRE_CONFIG_NEW_COMPILERS)
-  set(OGRE_SET_NEW_COMPILERS 1)
+if (NOT OGRE_CONFIG_ENABLE_GLES2_VAO_SUPPORT)
+  set(OGRE_SET_DISABLE_GLES2_VAO_SUPPORT 1)
+endif()
+if (NOT OGRE_CONFIG_ENABLE_GL_STATE_CACHE_SUPPORT)
+  set(OGRE_SET_DISABLE_GL_STATE_CACHE_SUPPORT 1)
+endif()
+if (NOT OGRE_CONFIG_ENABLE_GLES3_SUPPORT)
+  set(OGRE_SET_DISABLE_GLES3_SUPPORT 1)
+endif()
+if (NOT OGRE_CONFIG_ENABLE_TBB_SCHEDULER)
+  set(OGRE_SET_DISABLE_TBB_SCHEDULER 1)
 endif()
 if (OGRE_STATIC)
   set(OGRE_STATIC_LIB 1)
@@ -144,13 +187,19 @@ else ()
 	set(RTSHADER_SYSTEM_BUILD_CORE_SHADERS 0)
 endif ()
 
-if (OGRE_BUILD_RTSHADERSYSTEM_EXT_SHADERS)	
+if (OGRE_BUILD_RTSHADERSYSTEM_EXT_SHADERS)
 	set(RTSHADER_SYSTEM_BUILD_EXT_SHADERS 1)
 else ()
 	set(RTSHADER_SYSTEM_BUILD_EXT_SHADERS 0)
 endif ()
 
-# generate OgreBuildSettings.h 
+if (NOT OGRE_CONFIG_ENABLE_QUAD_BUFFER_STEREO)
+  set(OGRE_SET_DISABLE_QUAD_BUFFER_STEREO 1)
+else ()
+  set(OGRE_SET_DISABLE_QUAD_BUFFER_STEREO 0)
+endif()
+
+# generate OgreBuildSettings.h
 configure_file(${OGRE_TEMPLATES_DIR}/OgreBuildSettings.h.in ${OGRE_BINARY_DIR}/include/OgreBuildSettings.h @ONLY)
 install(FILES ${OGRE_BINARY_DIR}/include/OgreBuildSettings.h DESTINATION include/OGRE)
 
@@ -190,17 +239,22 @@ if (UNIX)
   install(FILES ${OGRE_BINARY_DIR}/pkgconfig/OGRE.pc DESTINATION ${OGRE_LIB_DIRECTORY}/pkgconfig)
 
   # configure additional packages
-  
+
   if (OGRE_BUILD_PLUGIN_PCZ)
     configure_file(${OGRE_TEMPLATES_DIR}/OGRE-PCZ.pc.in ${OGRE_BINARY_DIR}/pkgconfig/OGRE-PCZ.pc @ONLY)
     install(FILES ${OGRE_BINARY_DIR}/pkgconfig/OGRE-PCZ.pc DESTINATION ${OGRE_LIB_DIRECTORY}/pkgconfig)
   endif ()
-  
+
   if (OGRE_BUILD_COMPONENT_PAGING)
     configure_file(${OGRE_TEMPLATES_DIR}/OGRE-Paging.pc.in ${OGRE_BINARY_DIR}/pkgconfig/OGRE-Paging.pc @ONLY)
     install(FILES ${OGRE_BINARY_DIR}/pkgconfig/OGRE-Paging.pc DESTINATION ${OGRE_LIB_DIRECTORY}/pkgconfig)
   endif ()
 
+  if (OGRE_BUILD_COMPONENT_MESHLODGENERATOR)
+    configure_file(${OGRE_TEMPLATES_DIR}/OGRE-MeshLodGenerator.pc.in ${OGRE_BINARY_DIR}/pkgconfig/OGRE-MeshLodGenerator.pc @ONLY)
+    install(FILES ${OGRE_BINARY_DIR}/pkgconfig/OGRE-MeshLodGenerator.pc DESTINATION ${OGRE_LIB_DIRECTORY}/pkgconfig)
+  endif ()
+  
   if (OGRE_BUILD_COMPONENT_TERRAIN)
     if (OGRE_BUILD_COMPONENT_PAGING)
       set(OGRE_PAGING_ADDITIONAL_PACKAGES ", OGRE-Paging = ${OGRE_VERSION}")
@@ -219,10 +273,24 @@ if (UNIX)
     install(FILES ${OGRE_BINARY_DIR}/pkgconfig/OGRE-Property.pc DESTINATION ${OGRE_LIB_DIRECTORY}/pkgconfig)
   endif ()
 
+  if (OGRE_BUILD_COMPONENT_OVERLAY)
+    configure_file(${OGRE_TEMPLATES_DIR}/OGRE-Overlay.pc.in ${OGRE_BINARY_DIR}/pkgconfig/OGRE-Overlay.pc @ONLY)
+    install(FILES ${OGRE_BINARY_DIR}/pkgconfig/OGRE-Overlay.pc DESTINATION ${OGRE_LIB_DIRECTORY}/pkgconfig)
+  endif ()
+
+  if (OGRE_BUILD_COMPONENT_VOLUME)
+    configure_file(${OGRE_TEMPLATES_DIR}/OGRE-Volume.pc.in ${OGRE_BINARY_DIR}/pkgconfig/OGRE-Volume.pc @ONLY)
+    install(FILES ${OGRE_BINARY_DIR}/pkgconfig/OGRE-Volume.pc DESTINATION ${OGRE_LIB_DIRECTORY}/pkgconfig)
+  endif ()
+
+  if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_COMPILER_IS_CLANGXX 1)
+  endif ()
+
 endif ()
 
 if(OGRE_CONFIG_STATIC_LINK_CRT)
-#We statically link to reduce dependancies
+#We statically link to reduce dependencies
 foreach(flag_var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
     if(${flag_var} MATCHES "/MD")
         string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
@@ -248,4 +316,4 @@ endif(OGRE_CONFIG_STATIC_LINK_CRT)
 #   ${OGRE_BINARY_DIR}/cmake/OGREConfigVersion.cmake
 #   DESTINATION ${OGRE_CMAKE_DIR}
 # )
-# 
+#

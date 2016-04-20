@@ -1,7 +1,7 @@
 #ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
 #  if !defined(NOMINMAX) && defined(_MSC_VER)
-#	define NOMINMAX // required to stop windows.h messing up std::min
+#   define NOMINMAX // required to stop windows.h messing up std::min
 #  endif
 #  include <windows.h>
 #else
@@ -183,12 +183,12 @@ void nvparse(const char * input_string, int argc /* = 0 */,...)
     free(instring);
 }
 
-char * const * const nvparse_get_errors()
+char** nvparse_get_errors()
 {
     return errors.get_errors();
 }
 
-char * const * const nvparse_print_errors(FILE * errfp)
+char** nvparse_print_errors(FILE * errfp)
 {
     for (char * const *  ep = nvparse_get_errors(); *ep; ep++)
     {

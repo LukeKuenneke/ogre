@@ -1,10 +1,10 @@
 /*
 -----------------------------------------------------------------------------
 This source file is part of OGRE
-    (Object-oriented Graphics Rendering Engine)
+(Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2009 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,15 +29,23 @@ THE SOFTWARE.
 #ifndef __VisualTest_H__
 #define __VisualTest_H__
 
+#include "OgreBuildSettings.h"
+
+#ifdef INCLUDE_RTSHADER_SYSTEM
+// Remove the comment below in order to make the RTSS use valid path for writing down the generated shaders.
+// If cache path is not set - all shaders are generated to system memory.
+//#define _RTSS_WRITE_SHADERS_TO_DISK
+#endif // INCLUDE_RTSHADER_SYSTEM   
+
 #include "SdkSample.h"
+
+// resource group that will be automatically unloaded after the close of the sample
+#define TRANSIENT_RESOURCE_GROUP "VisualTestTransient"
 
 /** The base class for a visual test scene */
 class VisualTest : public OgreBites::Sample
 {
-public:
-
-    // resource group that will be automatically unloaded after the close of the sample
-    static Ogre::String TRANSIENT_RESOURCE_GROUP;
+ public:
 
     VisualTest()
     {
@@ -46,26 +54,16 @@ public:
         mInfo["Category"] = "Tests";
         mInfo["Thumbnail"] = "thumb_visual_tests.png";
         mInfo["Help"] = "";
-
         Ogre::ResourceGroupManager& rgm = Ogre::ResourceGroupManager::getSingleton();
         if (!rgm.resourceGroupExists(TRANSIENT_RESOURCE_GROUP))
             rgm.createResourceGroup(TRANSIENT_RESOURCE_GROUP);
     }
-
-    virtual ~VisualTest(){}
 
     /** Adds a screenshot frame to the list - this should
      *    be done during setup of the test. */
     void addScreenshotFrame(unsigned int frame)
     {
         mScreenshotFrames.insert(frame);
-    }
-
-    /** Does some basic setup tasks */
-    virtual void _setup(Ogre::RenderWindow* window, OIS::Keyboard* keyboard, 
-        OIS::Mouse* mouse, OgreBites::FileSystemLayer* fsLayer)
-    {
-        OgreBites::Sample::_setup(window, keyboard, mouse, fsLayer);
     }
 
     /** Clean up */
@@ -117,7 +115,7 @@ public:
         return false;
     }
 
-	/** Default frame started callback, advances animations */
+    /** Default frame started callback, advances animations */
     virtual bool frameStarted(const Ogre::FrameEvent& evt)
     {
         for(unsigned int i = 0; i < mAnimStateList.size(); ++i)
@@ -125,7 +123,7 @@ public:
         return true;
     }
 
-protected:
+ protected:
 
     // a set of frame numbers at which to trigger screenshots
     std::set<unsigned int> mScreenshotFrames;

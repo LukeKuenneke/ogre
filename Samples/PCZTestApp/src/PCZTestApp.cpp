@@ -9,7 +9,7 @@
         PCZTestApp.cpp
     \brief
         Demonstrates the Portal Connected Zone Scene Manager.  This application
-		is based on the Skybox demo app and uses the ExampleApplication framework.
+        is based on the Skybox demo app and uses the ExampleApplication framework.
 */
 
 #include "PCZTestApp.h"
@@ -29,7 +29,7 @@ INT WINAPI WinMain( HINSTANCE hInst, HINSTANCE, LPSTR strCmdLine, INT )
 int main(int argc, char *argv[])
 #endif
 {
-#if OGRE_PLATFORM == OGRE_PLATFORM_IPHONE
+#if OGRE_PLATFORM == OGRE_PLATFORM_APPLE_IOS
         NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
         int retVal = UIApplicationMain(argc, argv, @"UIApplication", @"AppDelegate");
         [pool release];
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 }
 #endif
 
-#if OGRE_PLATFORM == OGRE_PLATFORM_IPHONE
+#if OGRE_PLATFORM == OGRE_PLATFORM_APPLE_IOS
 #   ifdef __OBJC__
 @interface AppDelegate : NSObject <UIApplicationDelegate>
 {

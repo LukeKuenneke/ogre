@@ -5,7 +5,7 @@ This source file is part of OGRE
 For the latest info, see http://www.ogre3d.org/
 
 Copyright (c) 2008 Renato Araujo Oliveira Filho <renatox@gmail.com>
-Copyright (c) 2000-2011 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -69,7 +69,7 @@ namespace Ogre {
     GLESHardwarePixelBuffer::~GLESHardwarePixelBuffer()
     {
         // Force free buffer
-        OGRE_DELETE [] (uint8*)mBuffer.data;
+        delete [] (uint8*)mBuffer.data;
     }
 
     void GLESHardwarePixelBuffer::allocateBuffer()
@@ -78,7 +78,7 @@ namespace Ogre {
             // Already allocated
             return;
 
-        mBuffer.data = OGRE_NEW_FIX_FOR_WIN32 uint8[mSizeInBytes];
+        mBuffer.data = new uint8[mSizeInBytes];
         // TODO use PBO if we're HBU_DYNAMIC
     }
 
@@ -87,12 +87,12 @@ namespace Ogre {
         // Free buffer if we're STATIC to save memory
         if (mUsage & HBU_STATIC)
         {
-            OGRE_DELETE [] (uint8*)mBuffer.data;
+            delete [] (uint8*)mBuffer.data;
             mBuffer.data = 0;
         }
     }
 
-    PixelBox GLESHardwarePixelBuffer::lockImpl(const Image::Box lockBox,  LockOptions options)
+    PixelBox GLESHardwarePixelBuffer::lockImpl(const Image::Box &lockBox,  LockOptions options)
     {
         allocateBuffer();
         if (options != HardwareBuffer::HBL_DISCARD &&
@@ -131,33 +131,30 @@ namespace Ogre {
             src.getHeight() != dstBox.getHeight() ||
             src.getDepth() != dstBox.getDepth())
         {
-            // Scale to destination size. Use DevIL and not iluScale because ILU screws up for 
-            // floating point textures and cannot cope with 3D images.
+            // Scale to destination size.
             // This also does pixel format conversion if needed
             allocateBuffer();
             scaled = mBuffer.getSubVolume(dstBox);
             Image::scale(src, scaled, Image::FILTER_BILINEAR);
         }
+#if OGRE_PLATFORM != OGRE_PLATFORM_APPLE_IOS
         else if ((src.format != mFormat) ||
                  ((GLESPixelUtil::getGLOriginFormat(src.format) == 0) && (src.format != PF_R8G8B8)))
+#else
+        else if (GLESPixelUtil::getGLOriginFormat(src.format) == 0)
+#endif
         {
             // Extents match, but format is not accepted as valid source format for GL
             // do conversion in temporary buffer
             allocateBuffer();
             scaled = mBuffer.getSubVolume(dstBox);
             PixelUtil::bulkPixelConversion(src, scaled);
-
-            if(mFormat == PF_A4R4G4B4)
-            {
-                // ARGB->BGRA
-                GLESPixelUtil::convertToGLformat(scaled, scaled);
-            }
         }
         else
         {
             allocateBuffer();
+            // No scaling or conversion needed
             scaled = src;
-
             if (src.format == PF_R8G8B8)
             {
                 scaled.format = PF_B8G8R8;
@@ -242,7 +239,7 @@ namespace Ogre {
         mTarget(target), mTextureID(id), mFace(face), mLevel(level), mSoftwareMipmap(crappyCard)
     {
         GL_CHECK_ERROR;
-        glBindTexture(GL_TEXTURE_2D, mTextureID);
+        glBindTexture(mTarget, mTextureID);
         GL_CHECK_ERROR;
 
         // Get face identifier
@@ -268,8 +265,8 @@ namespace Ogre {
 
         // Log a message
 //        std::stringstream str;
-//        str << "GLESHardwarePixelBuffer constructed for texture " << mTextureID 
-//            << " face " << mFace << " level " << mLevel << ": "
+//        str << "GLESHardwarePixelBuffer constructed for texture " << baseName
+//            << " id " << mTextureID << " face " << mFace << " level " << mLevel << ": "
 //            << "width=" << mWidth << " height="<< mHeight << " depth=" << mDepth
 //            << "format=" << PixelUtil::getFormatName(mFormat);
 //        LogManager::getSingleton().logMessage(LML_NORMAL, str.str());
@@ -290,10 +287,10 @@ namespace Ogre {
             {
                 String name;
                 name = "rtt/" + StringConverter::toString((size_t)this) + "/" + baseName;
-                GLESSurfaceDesc target;
-                target.buffer = this;
-                target.zoffset = zoffset;
-                RenderTexture *trt = GLESRTTManager::getSingleton().createRenderTexture(name, target, writeGamma, fsaa);
+                GLESSurfaceDesc surface;
+                surface.buffer = this;
+                surface.zoffset = zoffset;
+                RenderTexture *trt = GLESRTTManager::getSingleton().createRenderTexture(name, surface, writeGamma, fsaa);
                 mSliceTRT.push_back(trt);
                 Root::getSingleton().getRenderSystem()->attachRenderTarget(*mSliceTRT[zoffset]);
             }
@@ -313,6 +310,13 @@ namespace Ogre {
         }
     }
 
+#if OGRE_PLATFORM == OGRE_PLATFORM_ANDROID
+    void GLESTextureBuffer::updateTextureId(GLuint textureID)
+    {
+        mTextureID = textureID;
+    }
+#endif
+    
     void GLESTextureBuffer::upload(const PixelBox &data, const Image::Box &dest)
     {
         glBindTexture(mTarget, mTextureID);
@@ -330,7 +334,7 @@ namespace Ogre {
             // for compressed formats
             if (dest.left == 0 && dest.top == 0)
             {
-                glCompressedTexImage2D(GL_TEXTURE_2D, mLevel,
+                glCompressedTexImage2D(mFaceTarget, mLevel,
                                        format,
                                        dest.getWidth(),
                                        dest.getHeight(),
@@ -341,7 +345,7 @@ namespace Ogre {
             }
             else
             {
-                glCompressedTexSubImage2D(GL_TEXTURE_2D, mLevel,
+                glCompressedTexSubImage2D(mFaceTarget, mLevel,
                                           dest.left, dest.top,
                                           dest.getWidth(), dest.getHeight(),
                                           format, data.getConsecutiveSize(),
@@ -396,6 +400,11 @@ namespace Ogre {
                 GL_CHECK_ERROR;
             }
 
+//            LogManager::getSingleton().logMessage("GLESTextureBuffer::upload - ID: " + StringConverter::toString(mTextureID) +
+//                                                  " Format: " + PixelUtil::getFormatName(data.format) +
+//                                                  " Origin format: " + StringConverter::toString(GLESPixelUtil::getGLOriginFormat(data.format, 0, ' ', std::ios::hex)) +
+//                                                  " Data type: " + StringConverter::toString(GLESPixelUtil::getGLOriginDataType(data.format, 0, ' ', std::ios::hex))
+//                                                  );
             glTexSubImage2D(mFaceTarget,
                             mLevel,
                             dest.left, dest.top,
@@ -428,9 +437,9 @@ namespace Ogre {
     
     void GLESTextureBuffer::copyFromFramebuffer(size_t zoffset)
     {
-        glBindTexture(GL_TEXTURE_2D, mTextureID);
+        glBindTexture(mFaceTarget, mTextureID);
         GL_CHECK_ERROR;
-        glCopyTexSubImage2D(GL_TEXTURE_2D, mLevel, 0, 0, 0, 0, mWidth, mHeight);
+        glCopyTexSubImage2D(mFaceTarget, mLevel, 0, 0, 0, 0, mWidth, mHeight);
         GL_CHECK_ERROR;
     }
 
@@ -460,12 +469,12 @@ namespace Ogre {
     // @author W.J. van der Laan
     void GLESTextureBuffer::blitFromTexture(GLESTextureBuffer *src, const Image::Box &srcBox, const Image::Box &dstBox)
     {
-		if(Root::getSingleton().getRenderSystem()->getCapabilities()->hasCapability(RSC_FBO) == false)
-		{
-			// the following code depends on FBO support, it crashes if FBO is not supported.
-			// TODO - write PBUFFER version of this function or a version that doesn't require FBO
-			return; // for now - do nothing.
-		}
+        if(Root::getSingleton().getRenderSystem()->getCapabilities()->hasCapability(RSC_FBO) == false)
+        {
+            // the following code depends on FBO support, it crashes if FBO is not supported.
+            // TODO - write PBUFFER version of this function or a version that doesn't require FBO
+            return; // for now - do nothing.
+        }
 
 //        std::cerr << "GLESTextureBuffer::blitFromTexture " <<
 //        src->mTextureID << ":" << srcBox.left << "," << srcBox.top << "," << srcBox.right << "," << srcBox.bottom << " " << 
@@ -603,6 +612,9 @@ namespace Ogre {
                 switch(mTarget)
                 {
                     case GL_TEXTURE_2D:
+#if OGRE_PLATFORM == OGRE_PLATFORM_ANDROID
+                    case GL_TEXTURE_CUBE_MAP_OES:
+#endif
                         glCopyTexSubImage2D(mFaceTarget, mLevel, 
                                             dstBox.left, dstBox.top, 
                                             0, 0, dstBox.getWidth(), dstBox.getHeight());
@@ -710,7 +722,7 @@ namespace Ogre {
         GL_CHECK_ERROR;
 
         // GL texture buffer
-        GLESTextureBuffer tex(StringUtil::BLANK, target, id, width, height, format, src.format,
+        GLESTextureBuffer tex(BLANKSTRING, target, id, width, height, format, src.format,
                               0, 0, (Usage)(TU_AUTOMIPMAP|HBU_STATIC_WRITE_ONLY), false, false, 0);
         
         // Upload data to 0,0,0 in temporary texture
@@ -760,7 +772,7 @@ namespace Ogre {
             GLenum glFormat = GLESPixelUtil::getGLOriginFormat(scaled.format);
             GLenum dataType = GLESPixelUtil::getGLOriginDataType(scaled.format);
 
-            glTexImage2D(GL_TEXTURE_2D,
+            glTexImage2D(mFaceTarget,
                          mip,
                          glFormat,
                          width, height,
@@ -773,7 +785,7 @@ namespace Ogre {
 
             if (mip != 0)
             {
-                OGRE_DELETE[] (uint8*) scaled.data;
+                delete[] (uint8*) scaled.data;
                 scaled.data = 0;
             }
 
@@ -790,7 +802,7 @@ namespace Ogre {
             int sizeInBytes = PixelUtil::getMemorySize(width, height, 1,
                                                        data.format);
             scaled = PixelBox(width, height, 1, data.format);
-            scaled.data = OGRE_NEW_FIX_FOR_WIN32 uint8[sizeInBytes];
+            scaled.data = new uint8[sizeInBytes];
             Image::scale(data, scaled, Image::FILTER_LINEAR);
         }
     }
@@ -831,4 +843,4 @@ namespace Ogre {
                                      GL_RENDERBUFFER_OES, mRenderbufferID);
         GL_CHECK_ERROR;
     }
-};
+}

@@ -7,11 +7,10 @@ set(HEADER_FILES
 
 set(SOURCE_FILES
   src/CharacterSample.cpp
-  src/Sinbad.cpp
 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-add_library(Sample_Character ${OGRE_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
+ogre_add_library_to_folder(Samples Sample_Character ${OGRE_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
 
 target_link_libraries(Sample_Character ${OGRE_LIBRARIES} ${OIS_LIBRARIES})
 ogre_config_sample_lib(Sample_Character)

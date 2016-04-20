@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2011 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -62,10 +62,11 @@ namespace Ogre {
 
         // Get the application frame size.  On all iPhones(including iPhone 4) this will be 320 x 480
         // The iPad, at least with iPhone OS 3.2 will report 768 x 1024
-        CGSize screenSize = [[UIScreen mainScreen] applicationFrame].size;
+        CGSize screenSize = [[UIScreen mainScreen] bounds].size;
 
         optVideoMode.name = "Video Mode";
         optVideoMode.possibleValues.push_back("320 x 480");
+        optVideoMode.possibleValues.push_back("320 x 568");
         optVideoMode.possibleValues.push_back("768 x 1024");
         optVideoMode.currentValue = StringConverter::toString(screenSize.width) + " x " + 
                                     StringConverter::toString(screenSize.height);
@@ -108,7 +109,7 @@ namespace Ogre {
     String EAGLSupport::validateConfig(void)
     {
         // TODO - DJR
-        return StringUtil::BLANK;
+        return BLANKSTRING;
     }
 
     String EAGLSupport::getDisplayName(void)
@@ -201,7 +202,7 @@ namespace Ogre {
 
     GLESPBuffer * EAGLSupport::createPBuffer( PixelComponentType format, size_t width, size_t height )
 	{
-		return OGRE_NEW EAGLPBuffer(this, format, width, height);
+		return new EAGLPBuffer(this, format, width, height);
 	}
     
     
@@ -217,7 +218,7 @@ namespace Ogre {
             ConfigOptionMap::iterator end = mOptions.end();
             NameValuePairList miscParams;
 
-            CGSize screenSize = [[UIScreen mainScreen] applicationFrame].size;
+            CGSize screenSize = [[UIScreen mainScreen] bounds].size;
             bool fullscreen = false;
             uint w = screenSize.width, h = screenSize.height;
 
@@ -272,7 +273,7 @@ namespace Ogre {
 
     EAGLESContext * EAGLSupport::createNewContext(CFDictionaryRef &glconfig, CAEAGLLayer *drawable, EAGLSharegroup *group) const
     {
-        EAGLESContext *context = OGRE_NEW EAGLESContext(drawable, group);
+        EAGLESContext *context = new EAGLESContext(drawable, group);
         if (context == NULL)
         {
             OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,

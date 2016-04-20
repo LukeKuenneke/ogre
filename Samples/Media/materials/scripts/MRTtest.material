@@ -31,9 +31,9 @@ material Ogre/MRTtest/scene
 		scheme MRT
 		pass
 		{
+            polygon_mode_overrideable false
 			vertex_program_ref Ogre/BasicVertexPrograms/AmbientOneTextureUnified
 			{
-				param_named_auto worldViewProj worldviewproj_matrix
 				param_named ambient float4 1 1 1 1
 			}
 			fragment_program_ref Ogre/MRTtest/scenefp
@@ -102,8 +102,9 @@ material Ogre/MRTtest/quad
 			cull_hardware none
 			cull_software none
 			depth_func always_pass
+            polygon_mode_overrideable false
 
-			vertex_program_ref Ogre/Compositor/StdQuad_vp
+			vertex_program_ref Ogre/Compositor/StdQuad_NoCG_vp
 			{
 			}
 

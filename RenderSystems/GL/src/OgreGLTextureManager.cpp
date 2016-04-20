@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2011 Torus Knot Software Ltd
+Copyright (c) 2000-2016 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ THE SOFTWARE.
 #include "OgreRoot.h"
 #include "OgreRenderSystem.h"
 #include "OgreGLRenderTexture.h"
+#include "OgreGLTexture.h"
 
 namespace Ogre {
     //-----------------------------------------------------------------------------
@@ -38,16 +39,14 @@ namespace Ogre {
     {
         // register with group manager
         ResourceGroupManager::getSingleton()._registerResourceManager(mResourceType, this);
-
-		createWarningTexture();
     }
     //-----------------------------------------------------------------------------
     GLTextureManager::~GLTextureManager()
     {
         // unregister with group manager
         ResourceGroupManager::getSingleton()._unregisterResourceManager(mResourceType);
-		// Delete warning texture
-		glDeleteTextures(1, &mWarningTextureID);
+        // Delete warning texture
+        glDeleteTextures(1, &mWarningTextureID);
     }
     //-----------------------------------------------------------------------------
     Resource* GLTextureManager::createImpl(const String& name, ResourceHandle handle, 
@@ -57,77 +56,77 @@ namespace Ogre {
         return new GLTexture(this, name, handle, group, isManual, loader, mGLSupport);
     }
 
-	//-----------------------------------------------------------------------------
-	void GLTextureManager::createWarningTexture()
-	{
-		// Generate warning texture
-		size_t width = 8;
-		size_t height = 8;
-		uint32 *data = new uint32[width*height];		// 0xXXRRGGBB
-		// Yellow/black stripes
-		for(size_t y=0; y<height; ++y)
-		{
-			for(size_t x=0; x<width; ++x)
-			{
-				data[y*width+x] = (((x+y)%8)<4)?0x000000:0xFFFF00;
-			}
-		}
-		// Create GL resource
+    //-----------------------------------------------------------------------------
+    void GLTextureManager::createWarningTexture()
+    {
+        // Generate warning texture
+        uint32 width = 8;
+        uint32 height = 8;
+        uint32 *data = new uint32[width*height];        // 0xXXRRGGBB
+        // Yellow/black stripes
+        for(size_t y=0; y<height; ++y)
+        {
+            for(size_t x=0; x<width; ++x)
+            {
+                data[y*width+x] = (((x+y)%8)<4)?0x000000:0xFFFF00;
+            }
+        }
+        // Create GL resource
         glGenTextures(1, &mWarningTextureID);
-		glBindTexture(GL_TEXTURE_2D, mWarningTextureID);
-		if (GLEW_VERSION_1_2)
-		{
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, (void*)data);
-		}
-		else
-		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_BGRA, GL_UNSIGNED_INT, (void*)data);
-		}
-		// Free memory
-		delete [] data;
-	}
-	//-----------------------------------------------------------------------------
-	PixelFormat GLTextureManager::getNativeFormat(TextureType ttype, PixelFormat format, int usage)
-	{
-		// Adjust requested parameters to capabilities
+        glBindTexture(GL_TEXTURE_2D, mWarningTextureID);
+        if (GLEW_VERSION_1_2)
+        {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, (void*)data);
+        }
+        else
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_BGRA, GL_UNSIGNED_INT, (void*)data);
+        }
+        // Free memory
+        delete [] data;
+    }
+    //-----------------------------------------------------------------------------
+    PixelFormat GLTextureManager::getNativeFormat(TextureType ttype, PixelFormat format, int usage)
+    {
+        // Adjust requested parameters to capabilities
         const RenderSystemCapabilities *caps = Root::getSingleton().getRenderSystem()->getCapabilities();
 
-		// Check compressed texture support
-		// if a compressed format not supported, revert to PF_A8R8G8B8
-		if(PixelUtil::isCompressed(format) &&
+        // Check compressed texture support
+        // if a compressed format not supported, revert to PF_A8R8G8B8
+        if(PixelUtil::isCompressed(format) &&
             !caps->hasCapability( RSC_TEXTURE_COMPRESSION_DXT ))
-		{
-			return PF_A8R8G8B8;
-		}
-		// if floating point textures not supported, revert to PF_A8R8G8B8
-		if(PixelUtil::isFloatingPoint(format) &&
+        {
+            return PF_A8R8G8B8;
+        }
+        // if floating point textures not supported, revert to PF_A8R8G8B8
+        if(PixelUtil::isFloatingPoint(format) &&
             !caps->hasCapability( RSC_TEXTURE_FLOAT ))
-		{
-			return PF_A8R8G8B8;
-		}
+        {
+            return PF_A8R8G8B8;
+        }
         
         // Check if this is a valid rendertarget format
-		if( usage & TU_RENDERTARGET )
+        if( usage & TU_RENDERTARGET )
         {
             /// Get closest supported alternative
             /// If mFormat is supported it's returned
             return GLRTTManager::getSingleton().getSupportedAlternative(format);
         }
 
-		// Supported
-		return format;
+        // Supported
+        return format;
 
-		
-	}
-	//-----------------------------------------------------------------------------
+        
+    }
+    //-----------------------------------------------------------------------------
     bool GLTextureManager::isHardwareFilteringSupported(TextureType ttype, PixelFormat format, int usage,
             bool preciseFormatOnly)
     {
         if (format == PF_UNKNOWN)
             return false;
 
-        // Check natively format
+        // Check native format
         PixelFormat nativeFormat = getNativeFormat(ttype, format, usage);
         if (preciseFormatOnly && format != nativeFormat)
             return false;

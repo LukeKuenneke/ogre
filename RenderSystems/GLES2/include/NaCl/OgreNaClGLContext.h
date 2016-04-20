@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2009 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,14 +30,16 @@ THE SOFTWARE.
 #define __NaClGLContext_H__
 
 #include "OgreGLES2Context.h"
+#include "OgreNaClWindow.h"
+#include "OgreNaClGLContext.h"
 
 namespace Ogre {
     class NaClGLSupport;
 
     class _OgrePrivate NaClGLContext : public GLES2Context, public pp::Graphics3DClient
     {
-		private:
-			const NaClGLSupport *mGLSupport;
+        private:
+            const NaClGLSupport *mGLSupport;
             const NaClWindow * mWindow;
             pp::Instance* mInstance;
             pp::CompletionCallback* mSwapCallback;
@@ -48,11 +50,11 @@ namespace Ogre {
             NaClGLContext(const NaClWindow * window, const NaClGLSupport *glsupport, pp::Instance* instance, pp::CompletionCallback* swapCallback);
             virtual ~NaClGLContext();
 
-			virtual void setCurrent();
+            virtual void setCurrent();
             virtual void endCurrent();
             GLES2Context* clone() const;
 
-            void swapBuffers(bool waitForVSync);
+            void swapBuffers();
 
             void resize();
 

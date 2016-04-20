@@ -1,25 +1,9 @@
-// Gbuffer Material
-
-vertex_program SSAO/GBuffer_vp cg
-{
-    source GBuffer.cg
-    entry_point GBuffer_vp
-    profiles vs_2_x arbvp1
-}
-
-fragment_program SSAO/GBuffer_fp cg
-{
-    source GBuffer.cg
-    entry_point GBuffer_fp
-    profiles ps_3_0 arbfp1
-}
-
 material SSAO/GBuffer
 {
     technique
     {
         pass
-        {
+        {	 
             vertex_program_ref SSAO/GBuffer_vp
             {
                 param_named_auto cWorldViewProj worldviewproj_matrix

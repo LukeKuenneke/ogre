@@ -12,6 +12,8 @@ if "%COMPILER%" == "vc9" set GENERATOR="Visual Studio 9 2008"
 if "%COMPILER%" == "vc9_x64" set GENERATOR="Visual Studio 9 2008 Win64"
 if "%COMPILER%" == "vc10" set GENERATOR="Visual Studio 10"
 if "%COMPILER%" == "vc10_x64" set GENERATOR="Visual Studio 10 Win64"
+if "%COMPILER%" == "vc11" set GENERATOR="Visual Studio 11"
+if "%COMPILER%" == "vc11_x64" set GENERATOR="Visual Studio 11 Win64"
 
 if %GENERATOR% == "" goto paramErr
 
@@ -28,7 +30,10 @@ if "%2" == "clean" rmdir /Q/S %BUILD_DIR%
 mkdir %BUILD_DIR%
 pushd %BUILD_DIR%
 rem call CMake
-cmake -DOGRE_INSTALL_SAMPLES_SOURCE:BOOL=TRUE -DOGRE_INSTALL_DOCS:BOOL=TRUE -DOGRE_INSTALL_DEPENDENCIES:BOOL=TRUE -G%GENERATOR% ..\..\..
+cmake -DOGRE_INSTALL_SAMPLES_SOURCE:BOOL=TRUE -DOGRE_INSTALL_DOCS:BOOL=TRUE -DOGRE_INSTALL_DEPENDENCIES:BOOL=TRUE -DCMAKE_INSTALL_PREFIX:PATH=%cd%\SDK -G%GENERATOR% ..\..\..
+if errorlevel 1 goto cmakeerror
+rem call twice to ensure all variables are set properly
+cmake -DOGRE_INSTALL_SAMPLES_SOURCE:BOOL=TRUE -DOGRE_INSTALL_DOCS:BOOL=TRUE -DOGRE_INSTALL_DEPENDENCIES:BOOL=TRUE -DCMAKE_INSTALL_PREFIX:PATH=%cd%\SDK -G%GENERATOR% ..\..\..
 if errorlevel 1 goto cmakeerror
 
 rem Read OGRE version
@@ -60,7 +65,7 @@ rem Build main binaries
 
 rem call CMake in sdk 
 pushd sdk
-cmake -G%GENERATOR% .\
+cmake -DBOOST_INCLUDEDIR:PATH=%cd%\boost -DBOOST_LIBRARYDIR=%cd%\boost\lib -DBoost_NO_SYSTEM_PATHS:BOOL=ON -G%GENERATOR% .\
 if errorlevel 1 goto cmakeerror
 rem delete cache (since it will include absolute paths)
 del CMakeCache.txt
@@ -89,7 +94,7 @@ echo Done! Test %SDKNAME%.exe and then release
 goto end
 
 :paramErr
-echo Required: Build tool (vc71, vc8, vc8x64, vc9, vc9x64, vc10, vc10x64)
+echo Required: Build tool (vc71, vc8, vc8x64, vc9, vc9x64, vc10, vc10x64, vc11, vc11x64)
 set errorlevel=1
 goto end
 

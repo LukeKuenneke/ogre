@@ -5,7 +5,7 @@ This source file is part of OGRE
 For the latest info, see http://www.ogre3d.org/
 
 Copyright (c) 2008 Renato Araujo Oliveira Filho <renatox@gmail.com>
-Copyright (c) 2000-2011 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,11 +37,8 @@ namespace Ogre {
     GLESTextureManager::GLESTextureManager(GLESSupport& support)
         : TextureManager(), mGLSupport(support), mWarningTextureID(0)
     {
-        GL_CHECK_ERROR;
         // Register with group manager
         ResourceGroupManager::getSingleton()._registerResourceManager(mResourceType, this);
-
-        createWarningTexture();
     }
 
     GLESTextureManager::~GLESTextureManager()
@@ -68,18 +65,18 @@ namespace Ogre {
         size_t width = 8;
         size_t height = 8;
 
-        // TODO convert to 5_6_5
-        uint32* data = OGRE_NEW_FIX_FOR_WIN32 uint32[width * height]; // 0xXXRRGGBB
+        uint16* data = new uint16[width * height];
 
         // Yellow/black stripes
         for(size_t y = 0; y < height; ++y)
         {
             for(size_t x = 0; x < width; ++x)
             {
-                data[y * width + x] = (((x + y) % 8) < 4) ? 0x000000 : 0xFFFF00;
+                data[y * width + x] = (((x + y) % 8) < 4) ? 0x0000 : 0xFFF0;
             }
         }
 
+        GL_CHECK_ERROR;
         // Create GL resource
         glGenTextures(1, &mWarningTextureID);
         GL_CHECK_ERROR;
@@ -89,7 +86,7 @@ namespace Ogre {
                      GL_UNSIGNED_SHORT_5_6_5, (void*)data);
         GL_CHECK_ERROR;
         // Free memory
-        OGRE_DELETE [] data;
+        delete [] data;
     }
 
     PixelFormat GLESTextureManager::getNativeFormat(TextureType ttype, PixelFormat format, int usage)
@@ -100,7 +97,10 @@ namespace Ogre {
         // Check compressed texture support
         // if a compressed format not supported, revert to PF_A8R8G8B8
         if (PixelUtil::isCompressed(format) &&
-            !caps->hasCapability(RSC_TEXTURE_COMPRESSION_DXT) && !caps->hasCapability(RSC_TEXTURE_COMPRESSION_PVRTC))
+            !caps->hasCapability(RSC_TEXTURE_COMPRESSION_DXT) && 
+            !caps->hasCapability(RSC_TEXTURE_COMPRESSION_PVRTC) && 
+            !caps->hasCapability(RSC_TEXTURE_COMPRESSION_ATC) && 
+            !caps->hasCapability(RSC_TEXTURE_COMPRESSION_ETC1))
         {
             return PF_A8R8G8B8;
         }

@@ -9,26 +9,13 @@
 
 # Configure CgProgramManager build
 
-set (HEADER_FILES
-  include/OgreCgFxScriptLoader.h
-  include/OgreCgPlugin.h
-  include/OgreCgPrerequisites.h
-  include/OgreCgProgram.h
-  include/OgreCgProgramFactory.h
-)
-
-set (SOURCE_FILES
-  src/OgreCgFxScriptLoader.cpp
-  src/OgreCgPlugin.cpp
-  src/OgreCgProgram.cpp
-  src/OgreCgProgramFactory.cpp
-  src/OgreCgProgramManagerDll.cpp
-)
+file(GLOB HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
+file(GLOB SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${Cg_INCLUDE_DIRS})
 add_definitions(-D_USRDLL)
 
-ogre_add_library(Plugin_CgProgramManager ${OGRE_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
+ogre_add_library_to_folder(Plugins Plugin_CgProgramManager ${OGRE_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
 target_link_libraries(Plugin_CgProgramManager OgreMain ${Cg_LIBRARIES})
 if (NOT OGRE_STATIC)
   set_target_properties(Plugin_CgProgramManager PROPERTIES
@@ -36,19 +23,7 @@ if (NOT OGRE_STATIC)
   ) 
 endif (NOT OGRE_STATIC)
 
-if (APPLE AND NOT OGRE_BUILD_PLATFORM_APPLE_IOS)
-    # Set the INSTALL_PATH so that Plugins can be installed in the application package
-    set_target_properties(Plugin_CgProgramManager
-       PROPERTIES BUILD_WITH_INSTALL_RPATH 1
-       INSTALL_NAME_DIR "@executable_path/../Plugins"
-    )
-
-	# Copy headers into the main Ogre framework
-	add_custom_command(TARGET Plugin_CgProgramManager POST_BUILD
-	  COMMAND /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp ARGS -exclude .DS_Store -exclude .hg -exclude 'CMakeLists.txt' -resolve-src-symlinks ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h ${OGRE_BINARY_DIR}/lib/$(CONFIGURATION)/Ogre.framework/Headers/
-	)
-endif()
+ogre_config_framework(Plugin_CgProgramManager)
 
 ogre_config_plugin(Plugin_CgProgramManager)
 install(FILES ${HEADER_FILES} DESTINATION include/OGRE/Plugins/CgProgramManager)
-

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2011 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,46 +27,17 @@ THE SOFTWARE.
 */
 
 // Emulate _findfirst, _findnext on non-Windows platforms
-
-
 #include "OgreSearchOps.h"
 #include <stdio.h>
-#include <ctype.h>
-
-#if OGRE_PLATFORM == OGRE_PLATFORM_SYMBIAN
-#include "OgreString.h"
-
-// SYMBIAN todo - possibly use - CDirScan from C:\Symbian\9.2\S60_3rd_FP1\Epoc32\include\f32file.h
-// see this sample - http://wiki.forum.nokia.com/index.php/Find_Files
-
-bool fnmatch (Ogre::String pattern, Ogre::String name, int dummy)
-{
-	if (pattern == "*")
-	{
-		return true;
-	}
-	if (pattern.substr(0,2) == "*.")
-	{
-		Ogre::StringUtil::toLowerCase(pattern);
-		Ogre::StringUtil::toLowerCase(name);
-		Ogre::String extToFind = pattern.substr(2, pattern.size() - 2);
-		if ((name.size() > extToFind.size()) &&(extToFind == name.substr(name.size() - extToFind.size(), extToFind.size())))
-		{
-			return 0; // match
-		}
-		else
-		{
-			return 1; // don't match
-		}
-	}
-	return false;
-}
-#endif
+#include <dirent.h>
+#include <fnmatch.h>
+#include <sys/stat.h>
+#include <string.h>
+#include <stdlib.h>
 
 /* Win32 directory operations emulation */
-#if OGRE_PLATFORM != OGRE_PLATFORM_WIN32
-
-
+#if OGRE_PLATFORM != OGRE_PLATFORM_WIN32 && OGRE_PLATFORM != OGRE_PLATFORM_WINRT
+    
 struct _find_search_t
 {
     char *pattern;
@@ -76,7 +47,7 @@ struct _find_search_t
     DIR *dirfd;
 };
         
-long _findfirst(const char *pattern, struct _finddata_t *data)
+intptr_t _findfirst(const char *pattern, struct _finddata_t *data)
 {
     _find_search_t *fs = new _find_search_t;
     fs->curfn = NULL;
@@ -86,7 +57,7 @@ long _findfirst(const char *pattern, struct _finddata_t *data)
     const char *mask = strrchr (pattern, '/');
     if (mask)
     {
-        fs->dirlen = mask - pattern;
+        fs->dirlen = static_cast<int>(mask - pattern);
         mask++;
         fs->directory = (char *)malloc (fs->dirlen + 1);
         memcpy (fs->directory, pattern, fs->dirlen);
@@ -102,7 +73,7 @@ long _findfirst(const char *pattern, struct _finddata_t *data)
     fs->dirfd = opendir (fs->directory);
     if (!fs->dirfd)
     {
-        _findclose ((long)fs);
+        _findclose ((intptr_t)fs);
         return -1;
     }
 
@@ -112,18 +83,18 @@ long _findfirst(const char *pattern, struct _finddata_t *data)
     fs->pattern = strdup (mask);
 
     /* Get the first entry */
-    if (_findnext ((long)fs, data) < 0)
+    if (_findnext ((intptr_t)fs, data) < 0)
     {
-        _findclose ((long)fs);
+        _findclose ((intptr_t)fs);
         return -1;
     }
 
-    return (long)fs;
+    return (intptr_t)fs;
 }
 
-int _findnext(long id, struct _finddata_t *data)
+int _findnext(intptr_t id, struct _finddata_t *data)
 {
-    _find_search_t *fs = (_find_search_t *)id;
+    _find_search_t *fs = reinterpret_cast<_find_search_t *>(id);
 
     /* Loop until we run out of entries or find the next one */
     dirent *entry;
@@ -173,10 +144,10 @@ int _findnext(long id, struct _finddata_t *data)
     return 0;
 }
 
-int _findclose(long id)
+int _findclose(intptr_t id)
 {
     int ret;
-    _find_search_t *fs = (_find_search_t *)id;
+    _find_search_t *fs = reinterpret_cast<_find_search_t *>(id);
     
     ret = fs->dirfd ? closedir (fs->dirfd) : 0;
     free (fs->pattern);

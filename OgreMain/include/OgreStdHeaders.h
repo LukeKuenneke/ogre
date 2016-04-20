@@ -5,7 +5,7 @@
     #define __STD_ALGORITHM
 #endif
 
-#if defined ( OGRE_GCC_VISIBILITY ) && (OGRE_PLATFORM != OGRE_PLATFORM_APPLE && OGRE_PLATFORM != OGRE_PLATFORM_APPLE_IOS)
+#if defined ( OGRE_GCC_VISIBILITY ) && ((OGRE_PLATFORM == OGRE_PLATFORM_APPLE && !__LP64__) && OGRE_PLATFORM != OGRE_PLATFORM_APPLE_IOS)
 /* Until libstdc++ for gcc 4.2 is released, we have to declare all
  * symbols in libstdc++.so externally visible, otherwise we end up
  * with them marked as hidden by -fvisible=hidden.
@@ -47,14 +47,24 @@
 #       include <ext/hash_map>
 #       include <ext/hash_set>
 #   endif
-#else
-#   if (OGRE_COMPILER == OGRE_COMPILER_MSVC) && !defined(STLPORT) && OGRE_COMP_VER >= 1600 // VC++ 10.0
-#    	include <unordered_map>
-#    	include <unordered_set>
-#	else
-#   	include <hash_set>
-#   	include <hash_map>
-#	endif
+#elif (OGRE_COMPILER == OGRE_COMPILER_CLANG)
+#   if defined(_LIBCPP_VERSION)
+#       include <unordered_map>
+#       include <unordered_set>
+#   else
+#       include <tr1/unordered_map>
+#       include <tr1/unordered_set>
+#   endif
+#elif !defined(STLPORT)
+#   if (OGRE_COMPILER == OGRE_COMPILER_MSVC) && _MSC_FULL_VER >= 150030729 // VC++ 9.0 SP1+
+#       include <unordered_map>
+#       include <unordered_set>
+#   elif OGRE_THREAD_PROVIDER == 1
+#       include <boost/unordered_map.hpp>
+#       include <boost/unordered_set.hpp>
+#   else
+#       error "Your compiler doesn't support unordered_set and unordered_map. Try to compile Ogre with Boost or STLPort."
+#   endif
 #endif 
 
 // STL algorithms & functions
@@ -64,8 +74,7 @@
 
 // C++ Stream stuff
 #include <fstream>
-#include <iostream>
-#include <iomanip>
+#include <iosfwd>
 #include <sstream>
 
 #ifdef __BORLANDC__
@@ -82,7 +91,7 @@ extern "C" {
 
 }
 
-#if OGRE_PLATFORM == OGRE_PLATFORM_WIN32
+#if OGRE_PLATFORM == OGRE_PLATFORM_WIN32 || OGRE_PLATFORM == OGRE_PLATFORM_WINRT
 #  undef min
 #  undef max
 #  if defined( __MINGW32__ )
@@ -90,7 +99,7 @@ extern "C" {
 #  endif
 #endif
 
-#if OGRE_PLATFORM == OGRE_PLATFORM_LINUX || OGRE_PLATFORM == OGRE_PLATFORM_ANDROID
+#if OGRE_PLATFORM == OGRE_PLATFORM_LINUX || OGRE_PLATFORM == OGRE_PLATFORM_ANDROID || OGRE_PLATFORM == OGRE_PLATFORM_EMSCRIPTEN
 extern "C" {
 
 #   include <unistd.h>
@@ -107,14 +116,11 @@ extern "C" {
 }
 #endif
 
-#if OGRE_THREAD_SUPPORT
-#	if !defined(NOMINMAX) && defined(_MSC_VER)
-#		define NOMINMAX // required to stop windows.h messing up std::min
-#	endif
-#   include "Threading/OgreThreadHeaders.h"
+#if OGRE_PLATFORM == OGRE_PLATFORM_EMSCRIPTEN
+#   include <emscripten/emscripten.h>
 #endif
 
-#if defined ( OGRE_GCC_VISIBILITY ) && (OGRE_PLATFORM != OGRE_PLATFORM_APPLE && OGRE_PLATFORM != OGRE_PLATFORM_APPLE_IOS)
+#if defined ( OGRE_GCC_VISIBILITY ) && ((OGRE_PLATFORM == OGRE_PLATFORM_APPLE && !__LP64__) && OGRE_PLATFORM != OGRE_PLATFORM_APPLE_IOS)
 #   pragma GCC visibility pop
 #endif
 #endif

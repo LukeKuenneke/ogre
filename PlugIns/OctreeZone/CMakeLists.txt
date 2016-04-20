@@ -9,25 +9,14 @@
 
 # Configure OctreeZone SceneManager build
 
-set (HEADER_FILES
-  include/OgreOctreeZone.h
-  include/OgreOctreeZoneOctree.h
-  include/OgreOctreeZonePlugin.h
-  include/OgreOctreeZonePrerequisites.h
-)
-
-set (SOURCE_FILES
-  src/OgreOctreeZone.cpp
-  src/OgreOctreeZoneDll.cpp
-  src/OgreOctreeZoneOctree.cpp
-  src/OgreOctreeZonePlugin.cpp
-)
+file(GLOB HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
+file(GLOB SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../PCZSceneManager/include)
 add_definitions(-D_USRDLL)
 
-ogre_add_library(Plugin_OctreeZone ${OGRE_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
+ogre_add_library_to_folder(Plugins Plugin_OctreeZone ${OGRE_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
 target_link_libraries(Plugin_OctreeZone OgreMain Plugin_PCZSceneManager)
 if (NOT OGRE_STATIC)
   set_property(TARGET Plugin_OctreeZone PROPERTY
@@ -42,18 +31,7 @@ if (UNIX)
   )
 endif ()
 
-if (APPLE AND NOT OGRE_BUILD_PLATFORM_APPLE_IOS)
-    # Set the INSTALL_PATH so that Plugins can be installed in the application package
-    set_target_properties(Plugin_OctreeZone
-       PROPERTIES BUILD_WITH_INSTALL_RPATH 1
-       INSTALL_NAME_DIR "@executable_path/../Plugins"
-    )
-
-	# Copy headers into the main Ogre framework
-	add_custom_command(TARGET Plugin_OctreeZone POST_BUILD
-	  COMMAND /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp ARGS -exclude .DS_Store -exclude .hg -exclude 'CMakeLists.txt' -resolve-src-symlinks ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h ${OGRE_BINARY_DIR}/lib/$(CONFIGURATION)/Ogre.framework/Headers/
-	)
-endif()
+ogre_config_framework(Plugin_OctreeZone)
 
 ogre_config_plugin(Plugin_OctreeZone)
 install(FILES ${HEADER_FILES} DESTINATION include/OGRE/Plugins/OctreeZone)

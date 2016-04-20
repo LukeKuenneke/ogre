@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2011 Torus Knot Software Ltd
+Copyright (c) 2000-2016 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,12 +34,13 @@ THE SOFTWARE.
 #include <assert.h>
 
 namespace Ogre {
+    namespace GLSL {
 
 // Limit max number of macro arguments to this
 #define MAX_MACRO_ARGS 16
 
 #if OGRE_PLATFORM == OGRE_PLATFORM_WIN32 && !defined( __MINGW32__ )
-	#define snprintf _snprintf
+    #define snprintf _snprintf
 #endif
 
 //---------------------------------------------------------------------------//
@@ -110,14 +111,16 @@ bool CPreprocessor::Token::GetValue (long &oValue) const
 
     long base = 10;
     if (String [i] == '0')
+    {
         if (Length > i + 1 && String [i + 1] == 'x')
             base = 16, i += 2;
         else
             base = 8;
+    }
 
     for (; i < Length; i++)
     {
-        long c = long (String [i]);
+        int c = int (String [i]);
         if (isspace (c))
             // Possible end of number
             break;
@@ -176,7 +179,7 @@ int CPreprocessor::Token::CountNL ()
         return 0;
 
     const char *s = String;
-    int l = Length;
+    size_t l = Length;
     int c = 0;
     while (l > 0)
     {
@@ -235,7 +238,7 @@ static void DefaultError (void *iData, int iLine, const char *iError,
                   iLine, iError, int (iTokenLen), iToken);
     else
         snprintf (line, sizeof (line), "line %d: %s\n", iLine, iError);
-    LogManager::getSingleton ().logMessage (line);
+    LogManager::getSingleton ().logMessage (line, LML_CRITICAL);
 }
 
 //---------------------------------------------------------------------------//
@@ -490,6 +493,7 @@ CPreprocessor::Token CPreprocessor::GetExpression (
 
     // Handle unary operators here
     if (oResult.Type == Token::TK_PUNCTUATION && oResult.Length == 1)
+    {
         if (strchr ("+-!~", oResult.String [0]))
         {
             char uop = oResult.String [0];
@@ -525,6 +529,7 @@ CPreprocessor::Token CPreprocessor::GetExpression (
                     op.String [0] == ')');
             op = GetToken (true);
         }
+    }
 
     while (op.Type == Token::TK_WHITESPACE ||
            op.Type == Token::TK_NEWLINE ||
@@ -743,6 +748,7 @@ CPreprocessor::Token CPreprocessor::GetArgument (Token &oArg, bool iExpand)
              oArg.Type == Token::TK_LINECONT);
 
     if (!iExpand)
+    {
         if (oArg.Type == Token::TK_EOS)
             return oArg;
         else if (oArg.Type == Token::TK_PUNCTUATION &&
@@ -758,8 +764,9 @@ CPreprocessor::Token CPreprocessor::GetArgument (Token &oArg, bool iExpand)
             Error (Line, "Unexpected token", &oArg);
             return Token (Token::TK_ERROR);
         }
+    }
 
-    uint len = oArg.Length;
+    size_t len = oArg.Length;
     while (true)
     {
         Token t = GetToken (iExpand);
@@ -1104,7 +1111,7 @@ Done:
 #define IS_DIRECTIVE(s) \
     (dirlen == strlen(s) && (strncmp (directive, s, strlen(s)) == 0))
 
-	bool outputEnabled = ((EnableOutput & (EnableOutput + 1)) == 0);
+    bool outputEnabled = ((EnableOutput & (EnableOutput + 1)) == 0);
     bool rc;
 
     if (IS_DIRECTIVE ("define") && outputEnabled)
@@ -1291,4 +1298,5 @@ char *CPreprocessor::Parse (const char *iSource, size_t iLength, size_t &oLength
     return retval.Buffer;
 }
 
+} // namespace GLSL
 } // namespace Ogre

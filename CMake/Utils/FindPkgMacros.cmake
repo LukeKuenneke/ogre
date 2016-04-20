@@ -44,6 +44,9 @@ macro(create_search_paths PREFIX)
     set(${PREFIX}_BIN_SEARCH_PATH ${${PREFIX}_BIN_SEARCH_PATH}
       ${dir}/bin)
   endforeach(dir)
+  if(ANDROID)
+	set(${PREFIX}_LIB_SEARCH_PATH ${${PREFIX}_LIB_SEARCH_PATH} ${OGRE_DEPENDENCIES_DIR}/lib/${ANDROID_ABI})
+  endif()
   set(${PREFIX}_FRAMEWORK_SEARCH_PATH ${${PREFIX}_PREFIX_PATH})
 endmacro(create_search_paths)
 
@@ -66,10 +69,12 @@ endmacro(clear_if_changed)
 
 # Try to get some hints from pkg-config, if available
 macro(use_pkgconfig PREFIX PKGNAME)
-  find_package(PkgConfig)
-  if (PKG_CONFIG_FOUND)
-    pkg_check_modules(${PREFIX} ${PKGNAME})
-  endif ()
+  if(NOT ANDROID)
+    find_package(PkgConfig)
+    if (PKG_CONFIG_FOUND)
+      pkg_check_modules(${PREFIX} ${PKGNAME})
+    endif ()
+  endif()
 endmacro (use_pkgconfig)
 
 # Couple a set of release AND debug libraries (or frameworks)
@@ -88,11 +93,11 @@ endmacro(make_library_set)
 # Generate debug names from given release names
 macro(get_debug_names PREFIX)
   foreach(i ${${PREFIX}})
-    set(${PREFIX}_DBG ${${PREFIX}_DBG} ${i}d ${i}D ${i}_d ${i}_D ${i}_debug ${i})
+    set(${PREFIX}_DBG ${${PREFIX}_DBG} ${i}d ${i}D ${i}_d ${i}_D ${i}_debug)
   endforeach(i)
 endmacro(get_debug_names)
 
-# Add the parent dir from DIR to VAR 
+# Add the parent dir from DIR to VAR
 macro(add_parent_dir VAR DIR)
   get_filename_component(${DIR}_TEMP "${${DIR}}/.." ABSOLUTE)
   set(${VAR} ${${VAR}} ${${DIR}_TEMP})
@@ -124,38 +129,37 @@ endmacro(findpkg_finish)
 
 
 # Slightly customised framework finder
-MACRO(findpkg_framework fwk)
-  IF(APPLE)
-    SET(${fwk}_FRAMEWORK_PATH
+macro(findpkg_framework fwk)
+  if(APPLE)
+    set(${fwk}_FRAMEWORK_PATH
       ${${fwk}_FRAMEWORK_SEARCH_PATH}
       ${CMAKE_FRAMEWORK_PATH}
       ~/Library/Frameworks
       /Library/Frameworks
       /System/Library/Frameworks
       /Network/Library/Frameworks
-      /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.0.sdk/System/Library/Frameworks/
-      ${CMAKE_CURRENT_SOURCE_DIR}/lib/Release
-      ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug
+      ${CMAKE_CURRENT_SOURCE_DIR}/lib/macosx/Release
+      ${CMAKE_CURRENT_SOURCE_DIR}/lib/macosx/Debug
     )
     # These could be arrays of paths, add each individually to the search paths
     foreach(i ${OGRE_PREFIX_PATH})
-      set(${fwk}_FRAMEWORK_PATH ${${fwk}_FRAMEWORK_PATH} ${i}/lib/Release ${i}/lib/Debug)
+      set(${fwk}_FRAMEWORK_PATH ${${fwk}_FRAMEWORK_PATH} ${i}/lib/macosx/Release ${i}/lib/macosx/Debug)
     endforeach(i)
 
     foreach(i ${OGRE_PREFIX_BUILD})
-      set(${fwk}_FRAMEWORK_PATH ${${fwk}_FRAMEWORK_PATH} ${i}/lib/Release ${i}/lib/Debug)
+      set(${fwk}_FRAMEWORK_PATH ${${fwk}_FRAMEWORK_PATH} ${i}/lib/macosx/Release ${i}/lib/macosx/Debug)
     endforeach(i)
 
-    FOREACH(dir ${${fwk}_FRAMEWORK_PATH})
-      SET(fwkpath ${dir}/${fwk}.framework)
-      IF(EXISTS ${fwkpath})
-        SET(${fwk}_FRAMEWORK_INCLUDES ${${fwk}_FRAMEWORK_INCLUDES}
+    foreach(dir ${${fwk}_FRAMEWORK_PATH})
+      set(fwkpath ${dir}/${fwk}.framework)
+      if(EXISTS ${fwkpath})
+        set(${fwk}_FRAMEWORK_INCLUDES ${${fwk}_FRAMEWORK_INCLUDES}
           ${fwkpath}/Headers ${fwkpath}/PrivateHeaders)
-        SET(${fwk}_FRAMEWORK_PATH ${dir})
+        set(${fwk}_FRAMEWORK_PATH ${dir})
         if (NOT ${fwk}_LIBRARY_FWK)
-          SET(${fwk}_LIBRARY_FWK "-framework ${fwk}")
+          set(${fwk}_LIBRARY_FWK "-framework ${fwk}")
         endif ()
-      ENDIF(EXISTS ${fwkpath})
-    ENDFOREACH(dir)
-  ENDIF(APPLE)
-ENDMACRO(findpkg_framework)
+      endif(EXISTS ${fwkpath})
+    endforeach(dir)
+  endif(APPLE)
+endmacro(findpkg_framework)

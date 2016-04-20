@@ -4,7 +4,7 @@
  (Object-oriented Graphics Rendering Engine)
  For the latest info, see http://www.ogre3d.org
  
- Copyright (c) 2000-2011 Torus Knot Software Ltd
+ Copyright (c) 2000-2014 Torus Knot Software Ltd
  
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -28,17 +28,15 @@
 
 #include "OgreRenderWindow.h"
 
-#import <Cocoa/Cocoa.h>
+#import <AppKit/NSWindow.h>
 
-using namespace Ogre;
-
-_OgreGLExport @interface OSXCocoaWindowDelegate : NSObject
+@interface OSXCocoaWindowDelegate : NSObject
 {
 @private
-    RenderWindow *ogreWindow;
-	NSWindow *window;
+    Ogre::RenderWindow *ogreWindow;
+    NSWindow *window;
 }
 
--(id)initWithNSWindow:(NSWindow*)nswin ogreWindow:(RenderWindow*)ogrewin;
+-(id)initWithNSWindow:(NSWindow*)nswin ogreWindow:(Ogre::RenderWindow*)ogrewin;
 
 @end

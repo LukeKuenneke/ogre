@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2011 Torus Knot Software Ltd
+Copyright (c) 2000-2016 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
-// Original author: Tels <http://bloodgate.com>, released as public domain
+
 #include "OgreCylinderEmitter.h"
 #include "OgreParticle.h"
 #include "OgreQuaternion.h"
@@ -81,16 +81,16 @@ namespace Ogre {
         // scale the found point to the cylinder's size and move it
         // relatively to the center of the emitter point
 
-        pParticle->position = mPosition + 
+        pParticle->mPosition = mPosition +
          + x * mXRange + y * mYRange + z * mZRange;
 
         // Generate complex data by reference
-        genEmissionColour(pParticle->colour);
-        genEmissionDirection(pParticle->direction);
-        genEmissionVelocity(pParticle->direction);
+        genEmissionColour(pParticle->mColour);
+        genEmissionDirection( pParticle->mPosition, pParticle->mDirection );
+        genEmissionVelocity(pParticle->mDirection);
 
         // Generate simpler data
-        pParticle->timeToLive = pParticle->totalTimeToLive = genEmissionTTL();
+        pParticle->mTimeToLive = pParticle->mTotalTimeToLive = genEmissionTTL();
         
     }
 
